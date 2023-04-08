@@ -22,7 +22,7 @@ public class AsyncMethodApplication {
 		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 		executor.setCorePoolSize(2);
 		executor.setMaxPoolSize(2);
-		executor.setQueueCapacity(500);
+		executor.setQueueCapacity(2);
 		executor.setThreadNamePrefix("GithubLookup-");
 		executor.initialize();
 		return executor;

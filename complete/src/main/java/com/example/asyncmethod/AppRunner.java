@@ -2,10 +2,20 @@ package com.example.asyncmethod;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.IntStream;
 
 @Component
 public class AppRunner implements CommandLineRunner {
@@ -14,29 +24,39 @@ public class AppRunner implements CommandLineRunner {
 
 	private final GitHubLookupService gitHubLookupService;
 
-	public AppRunner(GitHubLookupService gitHubLookupService) {
+	@Autowired
+	private  HeavyService heavyService;
+
+	private final RestTemplate restTemplate;
+
+	public AppRunner(GitHubLookupService gitHubLookupService, RestTemplateBuilder restTemplateBuilder) {
+
 		this.gitHubLookupService = gitHubLookupService;
+		this.restTemplate = restTemplateBuilder.build();
 	}
 
 	@Override
 	public void run(String... args) throws Exception {
-		// Start the clock
-		long start = System.currentTimeMillis();
+		this.heavyService.run();
+	}
 
-		// Kick of multiple, asynchronous lookups
-		CompletableFuture<User> page1 = gitHubLookupService.findUser("PivotalSoftware");
-		CompletableFuture<User> page2 = gitHubLookupService.findUser("CloudFoundry");
-		CompletableFuture<User> page3 = gitHubLookupService.findUser("Spring-Projects");
-
-		// Wait until they are all done
-		CompletableFuture.allOf(page1,page2,page3).join();
-
-		// Print results, including elapsed time
-		logger.info("Elapsed time: " + (System.currentTimeMillis() - start));
-		logger.info("--> " + page1.get());
-		logger.info("--> " + page2.get());
-		logger.info("--> " + page3.get());
-
+	@Async
+	public CompletableFuture<HeavyDto> exec(){
+		HeavyDto heavyDto = new HeavyDto();
+		logger.info("getting cat for " + heavyDto.getUid().toString());
+		String url = "https://cataas.com/cat/cute";
+		try {
+			byte[] icon = restTemplate.getForObject(url, byte[].class);
+			heavyDto.setImgBase64(Base64.getEncoder().encodeToString(icon));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			Thread.sleep(1000L);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+		return CompletableFuture.completedFuture(heavyDto);
 	}
 
 }
